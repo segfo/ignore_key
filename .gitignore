@@ -2,3 +2,4 @@
 /Cargo.lock
 config.toml
 logic_config.toml
+*.ps1
