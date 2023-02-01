@@ -6,11 +6,11 @@ use windows::Win32::{
     UI::{Input::KeyboardAndMouse::*, WindowsAndMessaging::*},
 };
 #[link_section = ".shared"]
-pub static mut hook: HHOOK = HHOOK(0);
+pub static mut HOOK: HHOOK = HHOOK(0);
 #[link_section = ".shared"]
-pub static mut g_dll: HINSTANCE = HINSTANCE(0);
+pub static mut DLL: HINSTANCE = HINSTANCE(0);
 #[link_section = ".shared"]
-static mut g_ignore: Lazy<RwLock<isize>> = Lazy::new(|| RwLock::new(0));
+static mut IGNORE: Lazy<RwLock<isize>> = Lazy::new(|| RwLock::new(0));
 
 #[no_mangle]
 pub extern "system" fn hook_proc(ncode: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -27,19 +27,19 @@ pub extern "system" fn hook_proc(ncode: i32, wparam: WPARAM, lparam: LPARAM) -> 
                     ImmReleaseContext(hwnd, ctx);
                 }
             }
-            let ignore = { *unsafe { g_ignore.read().unwrap() } };
+            let ignore = { *unsafe { IGNORE.read().unwrap() } };
             return LRESULT(ignore);
         }
     }
-    unsafe { CallNextHookEx(hook, ncode, wparam, lparam) }
+    unsafe { CallNextHookEx(HOOK, ncode, wparam, lparam) }
 }
 #[no_mangle]
 unsafe extern "C" fn ignore_ctrl_v() {
-    let mut ignore = unsafe { g_ignore.write().unwrap() };
+    let mut ignore = unsafe { IGNORE.write().unwrap() };
     *ignore = 1;
 }
 #[no_mangle]
 unsafe extern "C" fn notice_ctrl_v() {
-    let mut ignore = unsafe { g_ignore.write().unwrap() };
+    let mut ignore = unsafe { IGNORE.write().unwrap() };
     *ignore = 0;
 }

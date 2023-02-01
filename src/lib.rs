@@ -1,38 +1,37 @@
 use windows::{
-    core::*,
     Win32::{
         Foundation::*,
         UI::WindowsAndMessaging::*,
     },
 };
 enum DLL {
-    PROCESS_DETACH = 0,
-    PROCESS_ATTACH = 1,
-    THREAD_ATTACH = 2,
-    THREAD_DETACH = 3,
+    ProcessDetach = 0,
+    ProcessAttach = 1,
+    ThreadAttach = 2,
+    ThreadDetach = 3,
 }
 impl From<u32> for DLL {
     fn from(n: u32) -> Self {
         match n {
-            0 => DLL::PROCESS_DETACH,
-            1 => DLL::PROCESS_ATTACH,
-            2 => DLL::THREAD_ATTACH,
-            _ => DLL::THREAD_DETACH,
+            0 => DLL::ProcessDetach,
+            1 => DLL::ProcessAttach,
+            2 => DLL::ThreadAttach,
+            _ => DLL::ThreadDetach,
         }
     }
 }
 
 // https://learn.microsoft.com/ja-jp/windows/win32/dlls/dllmain
 #[no_mangle]
-unsafe extern "system" fn DllMain(h_inst: HINSTANCE, reason: u32, l_param: u32) -> bool {
+unsafe extern "system" fn DllMain(h_inst: HINSTANCE, reason: u32, _l_param: u32) -> bool {
     match DLL::from(reason) {
-        DLL::PROCESS_ATTACH => {
-            g_dll = h_inst;
+        DLL::ProcessAttach => {
+            DLL = h_inst;
         }
-        DLL::PROCESS_DETACH => {
+        DLL::ProcessDetach => {
         }
-        DLL::THREAD_ATTACH => {}
-        DLL::THREAD_DETACH => {}
+        DLL::ThreadAttach => {}
+        DLL::ThreadDetach => {}
     }
     true
 }
@@ -42,8 +41,8 @@ use hook::*;
 #[no_mangle]
 unsafe extern "C" fn sethook() -> bool {
     unsafe {
-        let dll: HINSTANCE = g_dll;
-        hook = match SetWindowsHookExW(WH_KEYBOARD, Some(hook_proc), dll, 0) {
+        let dll: HINSTANCE = DLL;
+        HOOK = match SetWindowsHookExW(WH_KEYBOARD, Some(hook_proc), dll, 0) {
             Ok(handle) => handle,
             Err(_) => {
                 return false;
@@ -55,19 +54,9 @@ unsafe extern "C" fn sethook() -> bool {
 #[no_mangle]
 unsafe extern "C" fn unhook() -> bool {
     unsafe {
-        if hook.0 != 0 {
-            let r = UnhookWindowsHookEx(hook);
+        if HOOK.0 != 0 {
+            let _ = UnhookWindowsHookEx(HOOK);
         }
     }
     true
-}
-fn msg(caption: &str, msg: &str) {
-    unsafe {
-        MessageBoxW(
-            HWND::default(),
-            &HSTRING::from(msg),
-            &HSTRING::from(caption),
-            MB_OK,
-        );
-    }
 }
